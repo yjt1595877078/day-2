@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, send_from_directory
 from datetime import timedelta
 import hashlib
 import time
@@ -7,6 +7,7 @@ import os
 
 app = Flask(__name__)
 app.secret_key = "dev-key-2025"
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # ===== session 超时设置（修复 #5）=====
 app.permanent_session_lifetime = timedelta(minutes=30)
@@ -34,6 +35,9 @@ def init_db():
               ("alice", "alice2025", "alice@example.com", "13900139001"))
     conn.commit()
     conn.close()
+    # 创建上传目录
+    upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
     print("✅ 数据库初始化完成")
 
 
@@ -217,6 +221,26 @@ def search():
     session["search_results"] = results
     session["search_keyword"] = keyword
     return redirect("/")
+
+
+@app.route("/upload", methods=["GET", "POST"])
+def upload():
+    """头像上传页面"""
+    if not session.get("username"):
+        return redirect("/login")
+
+    if request.method == "POST":
+        file = request.files.get("file")
+        if not file or file.filename == "":
+            return render_template("upload.html", error="请选择要上传的文件")
+
+        filename = file.filename
+        upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
+        file.save(os.path.join(upload_dir, filename))
+        file_url = f"/static/uploads/{filename}"
+        return render_template("upload.html", success=True, file_url=file_url, filename=filename)
+
+    return render_template("upload.html")
 
 
 @app.route("/logout")

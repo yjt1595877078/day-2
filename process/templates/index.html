@@ -18,19 +18,63 @@
                 <span class="info-label">手机</span>
                 <span class="info-value">{{ user['phone'] }}</span>
             </li>
+            {% if user.get('role') %}
             <li class="info-item">
                 <span class="info-label">角色</span>
                 <span class="info-value">{{ user['role'] }}</span>
             </li>
+            {% endif %}
+            {% if user.get('balance') is not none %}
             <li class="info-item">
                 <span class="info-label">余额</span>
                 <span class="info-value">{{ user['balance'] }}</span>
             </li>
+            {% endif %}
         </ul>
+
+        <!-- 搜索功能 -->
+        <hr style="margin: 24px 0; border: none; border-top: 1px solid #eee;">
+        <p class="guest-text">用户搜索</p>
+        <form method="GET" action="/search" style="display: flex; gap: 10px; margin-bottom: 16px;">
+            <input class="form-input" type="text" name="keyword" placeholder="输入用户名或邮箱搜索..." value="{{ search_keyword or '' }}" style="flex: 1;">
+            <button class="btn btn-primary" type="submit">搜索</button>
+        </form>
+
+        {% if search_results is not none %}
+            {% if search_results %}
+            <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                <thead>
+                    <tr style="background:#667eea; color:#fff;">
+                        <th style="padding:8px 12px; text-align:left;">ID</th>
+                        <th style="padding:8px 12px; text-align:left;">用户名</th>
+                        <th style="padding:8px 12px; text-align:left;">邮箱</th>
+                        <th style="padding:8px 12px; text-align:left;">手机</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in search_results %}
+                    <tr style="border-bottom:1px solid #f0f0f0;">
+                        <td style="padding:8px 12px;">{{ r['id'] }}</td>
+                        <td style="padding:8px 12px;">{{ r['username'] }}</td>
+                        <td style="padding:8px 12px;">{{ r['email'] }}</td>
+                        <td style="padding:8px 12px;">{{ r['phone'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="text-align:center; color:#888; font-size:14px; padding:12px;">无搜索结果</p>
+            {% endif %}
+        {% endif %}
+
         <div class="text-center mt-20">
+            <a class="btn btn-primary" href="/upload" style="margin-right:8px;">上传头像</a>
             <a class="btn btn-danger" href="/logout">退出登录</a>
         </div>
     {% else %}
+        {% if message %}
+        <div style="background:#f6ffed; border:1px solid #b7eb8f; color:#52c41a; padding:10px 14px; border-radius:6px; font-size:13px; margin-bottom:16px;">{{ message }}</div>
+        {% endif %}
         <p class="guest-text">请先登录</p>
         <div class="text-center">
             <a class="btn btn-primary" href="/login">前往登录</a>
