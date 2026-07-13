@@ -355,6 +355,29 @@ def recharge():
     return redirect(f"/profile?user_id={user_id}")
 
 
+@app.route("/page")
+def page():
+    """动态页面加载（不校验路径，存在路径穿越风险）"""
+    name = request.args.get("name", "")
+
+    pages_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pages")
+    filepath = os.path.join(pages_dir, name)
+
+    if os.path.isfile(filepath):
+        with open(filepath, "r") as f:
+            content = f.read()
+        return render_template("index.html", page_content=content)
+
+    # 尝试加 .html 后缀
+    filepath_html = filepath + ".html"
+    if os.path.isfile(filepath_html):
+        with open(filepath_html, "r") as f:
+            content = f.read()
+        return render_template("index.html", page_content=content)
+
+    return render_template("index.html", page_content="<p>页面不存在</p>")
+
+
 @app.route("/logout")
 def logout():
     session.clear()
