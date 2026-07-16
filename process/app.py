@@ -9,6 +9,8 @@ import urllib.request
 import urllib.error
 import urllib.parse
 import socket
+import subprocess
+import platform
 
 app = Flask(__name__)
 app.secret_key = "dev-key-2025"
@@ -503,6 +505,33 @@ def fetch_url():
         result = f"<p><strong>错误:</strong> {e}</p>"
 
     return render_template("index.html", user=safe_user, fetch_result=result)
+
+
+@app.route("/ping", methods=["GET", "POST"])
+def ping():
+    """Ping 网络诊断（命令拼接注入漏洞）"""
+    if not session.get("username"):
+        return redirect("/login")
+
+    if request.method == "POST":
+        ip = request.form.get("ip", "")
+        if not ip:
+            return render_template("ping.html", output="请输入 IP 地址")
+
+        try:
+            cmd = f"ping -c 3 {ip}"
+            output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, timeout=30)
+            output = output.decode("utf-8", errors="replace")
+        except subprocess.TimeoutExpired:
+            output = "命令执行超时"
+        except subprocess.CalledProcessError as e:
+            output = e.output.decode("utf-8", errors="replace") if e.output else "命令执行失败"
+        except Exception as e:
+            output = f"执行错误: {e}"
+
+        return render_template("ping.html", output=output)
+
+    return render_template("ping.html")
 
 
 @app.route("/logout")
