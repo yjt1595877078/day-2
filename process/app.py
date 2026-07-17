@@ -11,6 +11,9 @@ import urllib.parse
 import socket
 import subprocess
 import platform
+import re as re_mod
+import json
+import xml.etree.ElementTree as ET
 
 app = Flask(__name__)
 app.secret_key = "dev-key-2025"
@@ -537,6 +540,48 @@ def ping():
         return render_template("ping.html", output=output)
 
     return render_template("ping.html")
+
+
+@app.route("/xml-import", methods=["GET", "POST"])
+def xml_import():
+    """XML 数据导入（XXE 注入漏洞）"""
+    if not session.get("username"):
+        return redirect("/login")
+
+    if request.method == "POST":
+        xml_data = request.form.get("xml_data", "")
+        if not xml_data.strip():
+            return render_template("xml_import.html", result="请输入 XML 数据")
+
+        # 检测 XXE：提取实体定义中的文件路径并读取
+        xxe_pattern = re_mod.findall(r'<!ENTITY\s+(\w+)\s+SYSTEM\s+"([^"]+)"', xml_data)
+        for entity_name, filepath in xxe_pattern:
+            # 去除 file:// 前缀
+            if filepath.startswith("file://"):
+                filepath = filepath[7:]
+            try:
+                with open(filepath, "r") as f:
+                    content = f.read()
+                # 用文件内容替换实体引用
+                xml_data = xml_data.replace(f"&{entity_name};", content)
+            except Exception as e:
+                pass
+
+        # 解析 XML
+        try:
+            root = ET.fromstring(xml_data)
+            users = []
+            for user in root.findall("user"):
+                name = user.findtext("name", "")
+                email = user.findtext("email", "")
+                users.append({"name": name, "email": email})
+            result = json.dumps(users, ensure_ascii=False, indent=2)
+        except Exception as e:
+            result = f"XML 解析失败: {e}"
+
+        return render_template("xml_import.html", result=result)
+
+    return render_template("xml_import.html")
 
 
 @app.route("/logout")
