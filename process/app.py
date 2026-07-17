@@ -544,7 +544,7 @@ def ping():
 
 @app.route("/xml-import", methods=["GET", "POST"])
 def xml_import():
-    """XML 数据导入（XXE 注入漏洞）"""
+    """XML 数据导入"""
     if not session.get("username"):
         return redirect("/login")
 
@@ -552,20 +552,6 @@ def xml_import():
         xml_data = request.form.get("xml_data", "")
         if not xml_data.strip():
             return render_template("xml_import.html", result="请输入 XML 数据")
-
-        # 检测 XXE：提取实体定义中的文件路径并读取
-        xxe_pattern = re_mod.findall(r'<!ENTITY\s+(\w+)\s+SYSTEM\s+"([^"]+)"', xml_data)
-        for entity_name, filepath in xxe_pattern:
-            # 去除 file:// 前缀
-            if filepath.startswith("file://"):
-                filepath = filepath[7:]
-            try:
-                with open(filepath, "r") as f:
-                    content = f.read()
-                # 用文件内容替换实体引用
-                xml_data = xml_data.replace(f"&{entity_name};", content)
-            except Exception as e:
-                pass
 
         # 解析 XML
         try:
